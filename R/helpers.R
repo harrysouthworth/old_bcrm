@@ -1,4 +1,4 @@
-check.bcrm.data <- function(){
+check.bcrm.data <- function(data, sdose, start){
   if(any(!(c("patient", "dose", "tox") %in% names(data)))){
     stop("data must have variables named 'patient',  'dose' and 'tox'")
   }
@@ -17,16 +17,16 @@ check.bcrm.data <- function(){
   invisible()
 }
 
-get.bcrm.sdose <- function(){
+get.bcrm.sdose <- function(prior.alpha, sdose.calculate, ff, p.tox0){
   alpha.prior.plug <- if (prior.alpha[[1]] == 1){
     ifelse(sdose.calculate == "mean", prior.alpha[[2]] * prior.alpha[[3]], median(getprior(prior.alpha,  10000)))
   } else if(prior.alpha[[1]] == 2){
-    0.5*(prior.alpha[[2]]+prior.alpha[[3]])
+    0.5 * (prior.alpha[[2]] + prior.alpha[[3]])
   } else if(prior.alpha[[1]] == 3){
-    ifelse(sdose.calculate=="mean", exp(prior.alpha[[2]] + prior.alpha[[3]] / 2), exp(prior.alpha[[2]]))
+    ifelse(sdose.calculate == "mean", exp(prior.alpha[[2]] + prior.alpha[[3]] / 2), exp(prior.alpha[[2]]))
   } else if(prior.alpha[[1]] == 4){
     if(sdose.calculate == "mean"){
-      exp(prior.alpha[[2]] + diag(prior.alpha[[3]])/2)
+      exp(prior.alpha[[2]] + diag(prior.alpha[[3]]) / 2)
     } else {
         exp(prior.alpha[[2]])
     }
@@ -35,16 +35,18 @@ get.bcrm.sdose <- function(){
   find.x(ff, p.tox0, alpha=alpha.prior.plug)
 }
 
-check.bcrm.args <- function(){
+check.bcrm.args <- function(N, stop, tox, notox, p.tox0, sdose, sdose.calculate,
+                            pointest, method, tox.cutpoints, simulate, truep,
+                            ff, constrain, start, data, loss, prior.alpha){
   # Checks of argument inputs
-  if(missing(N) & is.null(stop$nmax) & is.null(stop$nmtd) & is.null(stop$precision)){
+  if(is.null(N) & is.null(stop$nmax) & is.null(stop$nmtd) & is.null(stop$precision)){
     stop("At least one stopping rule must be provided using the stop argument")
   }
-  if(!missing(N)){
+  if(!is.null(N)){
     stop$nmax <- N
     warning("N is deprecated and users should now use the stop argument to specify the maximum sample size")
   }
-  if(!missing(tox) | !missing(notox)){
+  if(!is.null(tox) | !is.null(notox)){
     stop("tox and nontox arguments are deprecated and users should now use the data argument to specify previous data,  see ?bcrm")
   }
   if(!(length(stop$precision) %in% c(0, 2))){
@@ -53,10 +55,10 @@ check.bcrm.args <- function(){
   if(!is.null(stop$nmax) & !is.null(stop$nmin)) {
     if(stop$nmin>stop$nmax) stop("stop$nmin must be less than stop$nmax")
   }
-  if(missing(p.tox0) & missing(sdose)){
+  if(is.null(p.tox0) & is.null(sdose)){
     stop("Either p.tox0 or sdose must be specified")
   }
-  if(!missing(p.tox0) & !missing(sdose)){
+  if(!is.null(p.tox0) & !is.null(sdose)){
     stop("Only one of p.tox0 and sdose must be specified")
   }
   if(sdose.calculate!="mean" & sdose.calculate!="median"){

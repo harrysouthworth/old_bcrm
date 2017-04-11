@@ -375,15 +375,17 @@
 #'
 #' @export bcrm
 bcrm <- function(stop=list(nmax=NULL, nmtd=NULL, precision=NULL, nmin=NULL),
-                 data=NULL, p.tox0=NULL, sdose=NULL, dose=NULL, ff, prior.alpha,
-                 cohort=3, target.tox, constrain=TRUE, sdose.calculate="mean",
+                 data=NULL, p.tox0=NULL, sdose=NULL, dose=NULL, ff=NULL, prior.alpha=NULL,
+                 cohort=3, target.tox=NULL, constrain=TRUE, sdose.calculate="mean",
                  pointest="plugin", tox.cutpoints=NULL, loss=NULL, start=NULL,
                  simulate=FALSE, nsims=1, truep=NULL, threep3=FALSE,
                  method="exact", burnin.itr=2000, production.itr=2000,
                  bugs.directory="c:/Program Files/WinBUGS14/", plot=FALSE,
-                 seed=NULL,  quietly=FALSE,  file=NULL, N, tox, notox){
+                 seed=NULL,  quietly=FALSE,  file=NULL, N=NULL, tox=NULL, notox=NULL, ...){
 
-  wh <- check.bcrm.args()
+  wh <- check.bcrm.args(N, stop, tox, notox, p.tox0, sdose, sdose.calculate,
+                        pointest, method, tox.cutpoints, simulate, truep,
+                        ff, constrain, start, data, loss, prior.alpha)
 
   if(!is.null(tox.cutpoints)){
     pointest <- NULL
@@ -398,8 +400,8 @@ bcrm <- function(stop=list(nmax=NULL, nmtd=NULL, precision=NULL, nmin=NULL),
     set.seed(seed)
   }
 
-  if(missing(sdose)){
-    sdose <- get.bcrm.sdose()
+  if(is.null(sdose)){
+    sdose <- get.bcrm.sdose(prior.alpha, sdose.calculate, ff, p.tox0)
   }
 
   # Checking that length of truep in simulation study is same length as sdose
@@ -409,7 +411,7 @@ bcrm <- function(stop=list(nmax=NULL, nmtd=NULL, precision=NULL, nmin=NULL),
 
   # Check data contains the correct variables
   if(!is.null(data)){
-    wh <- check.bcrm.data()
+    wh <- check.bcrm.data(data, sdose, start)
     data <- data[order(data$patient), ]
     start <- as.numeric(data$dose[1])
   }

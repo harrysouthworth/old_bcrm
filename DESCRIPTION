@@ -2,8 +2,8 @@ Package: bcrm
 Type: Package
 Title: Bayesian Continual Reassessment Method for Phase I
         Dose-Escalation Trials
-Version: 0.4.6
-Date: 2015-11-20
+Version: 0.4.7
+Date: 2017-04-11
 Author: Michael Sweeting
 Maintainer: Michael Sweeting <mjs212@medschl.cam.ac.uk>
 Description: Implements a wide variety of one and two-parameter Bayesian CRM
@@ -12,9 +12,10 @@ Description: Implements a wide variety of one and two-parameter Bayesian CRM
     characteristics.
 License: GPL (>= 2)
 LazyLoad: yes
-Imports: mvtnorm, ggplot2 (>= 1.0.1), grid
+Depends: ggplot2
+Imports: mvtnorm, grid
 Suggests: R2WinBUGS, BRugs, rjags
-RoxygenNote: 5.0.1
+RoxygenNote: 6.0.1
 NeedsCompilation: no
 Packaged: 2015-11-20 12:19:25 UTC; me
 Repository: CRAN
