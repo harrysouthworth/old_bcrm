@@ -14,3 +14,4 @@
 *.tex
 figure/*
 
+.Rproj.user

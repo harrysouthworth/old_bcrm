@@ -1,14 +1,24 @@
 check.bcrm.data <- function(){
-  if(any(!(c("patient", "dose", "tox") %in% names(data)))) stop("data must have variables named 'patient',  'dose' and 'tox'")
-  if(any(data$patient != 1:dim(data)[1])) stop("'patient' variable in data must be an ascending vector of positive integers")
-  if(any(!(data$tox %in% c(0, 1)))) stop("'tox' variable in data must be a vector of zeros (no toxicity) and ones (toxicity)")
-  if(any(!(data$dose %in% 1:length(sdose)))) stop(paste("'dose' variable in data must contain the dose levels (1 to ", length(sdose), ")", sep=""))
-  if(!is.null(start)) warning("start no longer needs to be specified   if data is given; using last recruited patient as current dose")
+  if(any(!(c("patient", "dose", "tox") %in% names(data)))){
+    stop("data must have variables named 'patient',  'dose' and 'tox'")
+  }
+  if(any(data$patient != 1:dim(data)[1])){
+    stop("'patient' variable in data must be an ascending vector of positive integers")
+  }
+  if(any(!(data$tox %in% c(0, 1)))){
+    stop("'tox' variable in data must be a vector of zeros (no toxicity) and ones (toxicity)")
+  }
+  if(any(!(data$dose %in% 1:length(sdose)))){
+    stop(paste("'dose' variable in data must contain the dose levels (1 to ", length(sdose), ")", sep=""))
+  }
+  if(!is.null(start)){
+    warning("start no longer needs to be specified if data is given; using last recruited patient as current dose")
+  }
   invisible()
 }
 
 get.bcrm.sdose <- function(){
-  alpha.prior.plug <- if(prior.alpha[[1]] == 1){
+  alpha.prior.plug <- if (prior.alpha[[1]] == 1){
     ifelse(sdose.calculate == "mean", prior.alpha[[2]] * prior.alpha[[3]], median(getprior(prior.alpha,  10000)))
   } else if(prior.alpha[[1]] == 2){
     0.5*(prior.alpha[[2]]+prior.alpha[[3]])
@@ -206,16 +216,16 @@ getprior  <-  function(prior.alpha,  n) {
   type  <-  prior.alpha[[1]]
   a     <-  prior.alpha[[2]]
   b     <-  prior.alpha[[3]]
-  if ( type==1 ) {
-    prior <- rgamma(n, a)*b
+  if ( type == 1 ) {
+    prior <- rgamma(n, a) * b
   }
-  else if ( type==2 ) {
-    prior <- sapply(1:length(a), function(i){runif(n, a[i], b[i])})
+  else if ( type == 2 ) {
+    prior <- sapply(1:length(a), function(i){ runif(n, a[i], b[i])} )
   }
-  else if (type==3) {
+  else if (type == 3) {
     prior <- rlnorm(n, a, sqrt(b))
   }
-  else if (type==4) {
+  else if (type == 4) {
     log.prior <- rmvnorm(n, a, b)
     prior <- exp(log.prior)
   }
