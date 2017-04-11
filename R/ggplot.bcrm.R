@@ -31,99 +31,43 @@
 #' @export
 ggplot.bcrm <- function(data, mapping=aes(), file=NULL, each=FALSE, title="Posterior p(DLT) quantiles: 2.5%,  25%,  50%,  75%,  97.5% \n Diamond shows next recommended dose",
                       trajectory=FALSE, cols.traj=c(No="blue", Yes="orange"), ..., environment=NULL){
-  data$dose <- if(is.null(data$dose)){
-    data$sdose
-  } else {
-    data$dose
+  if (is.null(data$data$dose)){
+    data$data$dose <- data$sdose
   }
 
   dose.label <- if(is.null(data$dose)) "Standardised dose" else "Dose"
 
   f <- which.f(data$ff)
 
+  logit2 <- data$method %in% c("exact", "exact.sim") & data$ff == "logit2"
+
   if (trajectory){
-    ggplot.bcrm_trajectory(data$data, cols=cols.traj)
+    ggplot.bcrm_trajectory(data, cols=cols.traj)
   } else {
-
-    d <- get.bcrm.plot.data(data, each, dose)
-    df <- d[[1]]
-    df2 <- d[[2]]
-
+    # Plots when there is no loss vector
     a <- if(is.null(data$loss)){
       if(!each){
-        if(data$method %in% c("exact", "exact.sim") & data$ff == "logit2"){
-          ggplot(df, aes(x=dose, y=est)) +
-            geom_point() +
-            geom_hline(aes(yintercept=target.tox), data=df, col=4, linetype=2) +
-            xlab(dose.label) +
-            ylab("Probability of DLT") +
-            ylim(0, 1) +
-            ggtitle("Posterior point estimates \n Diamond shows next recommended dose") +
-            geom_point(aes(x=dose, y=est), data=df[data$ndose[[1]]$ndose, ], size=4, col=4, shape=9)
+        if(logit2){
+          ggplot.bcrm_logit2_noloss(data)
         } else {
-          ggplot(df, aes(x=dose, ymin=q2.5, ymax=q97.5)) +
-            geom_errorbar(colour="red") +
-            geom_pointrange(aes(x=dose, y=q50, ymin=q25, ymax=q75), data=df, fill="red") +
-            geom_hline(aes(yintercept=target.tox), data=df, col=4, linetype=2) +
-            xlab(dose.label) +
-            ylab("Probability of DLT") +
-            ylim(0, 1) +
-            ggtitle("Posterior p(DLT) quantiles: 2.5%,  25%,  50%,  75%,  97.5% \n Diamond shows next recommended dose") +
-            geom_point(aes(x=dose, y=q50), data=df[data$ndose[[length(data$ndose)]][[1]], ], size=4, col=4, shape=9)
+          ggplot.bcrm_nologit2_noloss(data)
         }
       } else { # each is TRUE
-        if(data$method %in% c("exact", "exact.sim") & data$ff=="logit2"){
-          ggplot()+geom_point(aes(x=dose, y=est), data=df)+
-            geom_hline(aes(yintercept=target.tox), data=df, col=4, linetype=2)  +
-            xlab(dose.label) +
-            ylab("Probability of DLT") +
-            ylim(0, 1) +
-            ggtitle("Posterior point estimates \n Diamond shows next recommended dose") +
-            geom_point(aes(x=ndose, y=q50), data=df[df$dose==df$ndose, ], size=4, col=4, shape=9) +
-            facet_wrap(~ cohort)
+        if(logit2){
+          ggplot.bcrm_logit2_noloss_each(data)
         } else {
-          ggplot() +
-            geom_errorbar(aes(x=dose, ymin=q2.5, ymax=q97.5), colour="red", data=df) +
-            geom_pointrange(aes(x=dose, y=q50, ymin=q25, ymax=q75), data=df, fill="red") +
-            geom_hline(aes(yintercept=target.tox), data=df, col=4, linetype=2) +
-            xlab(dose.label)+ylab("Probability of DLT") +
-            ylim(0, 1) +
-            ggtitle("Posterior p(DLT) quantiles: 2.5%,  25%,  50%,  75%,  97.5% \n Diamond shows next recommended dose") +
-            geom_point(aes(x=ndose, y=q50), data=df[df$dose==df$ndose, ], size=4, col=4, shape=9) +
-            facet_wrap(~ cohort)
+          ggplot.bcrm_nologit2_noloss_each(data)
         }
       }
     } else {
-      df.intervals <- data.frame(cohort=rep(0:(length(data$ndose)-1), each=length(data$loss)),
-                                 xmin=min(dose),
-                                 xmax=max(dose),
-                                 ymin=c(0, tox.cutpoints),
-                                 ymax=c(data$tox.cutpoints, 1),
-                                 Loss=data$loss)
       if(!each){
-        ggplot() +
-          geom_errorbar(aes(x=dose, ymin=q2.5, ymax=q97.5), colour="red", data=df) +
-          geom_pointrange(aes(x=dose, y=q50, ymin=q25, ymax=q75), data=df, fill="red") +
-          geom_point(aes(x=dose, y=q50), data=df[data$ndose[[length(data$ndose)]][[1]], ], size=4, col=4, shape=9) +
-          geom_rect(aes(xmin=xmin, ymin=ymin, xmax=xmax, ymax=ymax, fill=Loss), data=df.intervals, alpha=0.3) +
-          scale_fill_gradient(breaks=sort(unique(df.intervals$Loss)), high="red", low="#99ccff", guide="legend") +
-          xlab(dose.label) +
-          ylab("Probability of DLT") +
-          ylim(0, 1) +
-          ggtitle("Posterior p(DLT) quantiles: 2.5%,  25%,  50%,  75%,  97.5% \n Diamond shows next recommended dose")
+        ggplot.bcrm_loss(data)
       } else {
-        ggplot() +
-          geom_errorbar(aes(x=dose, ymin=q2.5, ymax=q97.5), colour="red", data=df) +
-          geom_pointrange(aes(x=dose, y=q50, ymin=q25, ymax=q75), data=df, fill="red") +
-          geom_point(aes(x=ndose, y=q50), data=df[df$dose==df$ndose, ], size=4, col=4, shape=9) +
-          geom_rect(aes(xmin=xmin, ymin=ymin, xmax=xmax, ymax=ymax, fill=Loss), data=df.intervals, alpha=0.3) +
-          xlab(dose.label) +
-          ylab("Probability of DLT")+ylim(0, 1) +
-          ggtitle(title) +
-          facet_wrap(~ cohort)
+        ggplot.bcrm_loss_each(data)
       }
     }
 
+    # Get the barchart, if possible
     b <- try(ggplot.bcrm_barchart(data, cols=cols.barchart, dose.label=dose.label), silent=TRUE)
     if (class(b) == "try-error"){
       b <- NULL
@@ -142,6 +86,9 @@ ggplot.bcrm <- function(data, mapping=aes(), file=NULL, each=FALSE, title="Poste
   }
 }
 
+################################################################################
+# Barchart
+
 ggplot.bcrm_barchart <- function(data, mapping=aes(), cols=cols.barchart, dose.label){
   df2 <- data.frame(dose = factor(c(rep(data$dose, data$tox), rep(data$dose, data$notox)), levels=dose),
                     Outcome = factor(c(rep("DLT", sum(data$tox)), rep("No DLT", sum(data$notox))), levels=c("DLT", "No DLT")))
@@ -156,9 +103,12 @@ ggplot.bcrm_barchart <- function(data, mapping=aes(), cols=cols.barchart, dose.l
   p
 }
 
+################################################################################
+# No loss vector supplied
+
 ggplot.bcrm_logit2_noloss <- function(data=NULL, mapping=aes()){
   d <- data$data
-  ndose <- d$ndose[[1]]$ndose
+  ndose <- d$ndose[[length(d$ndose)]]$ndose
 
   p <-
   ggplot(df, aes(x=dose, y=est)) +
@@ -173,9 +123,152 @@ ggplot.bcrm_logit2_noloss <- function(data=NULL, mapping=aes()){
   p
 }
 
+ggplot.bcrm_nologit2_noloss <- function(data=NULL, mapping=aes(), dose.label){
+  quants <- data$ndose[[length(data$ndose)]]$quantiles
+  if (nrow(quants) != 5){
+    stop("The quantiles in data$ndose should contain 5 rows")
+  }
 
+  df <- data.frame(dose = dose,
+                   target.tox = data$target.tox,
+                   est = data$ndose[[length(data$ndose)]]$est,
+                   mean = data$ndose[[length(data$ndose)]]$mean,
+                   q2.5 = quants["2.5%", ],
+                   q25 = quants["25%", ],
+                   q50 = quants["50%", ],
+                   q75 = quants["75%", ],
+                   q97.5 = quants["97.5%", ])
+
+  p <-
+  ggplot(df, aes(x=dose, ymin=q2.5, ymax=q97.5)) +
+    geom_errorbar(colour="red") +
+    geom_pointrange(aes(x=dose, y=q50, ymin=q25, ymax=q75), data=df, fill="red") +
+    geom_hline(aes(yintercept=target.tox), data=df, col=4, linetype=2) +
+    xlab(dose.label) +
+    ylab("Probability of DLT") +
+    ylim(0, 1) +
+    ggtitle("Posterior p(DLT) quantiles: 2.5%,  25%,  50%,  75%,  97.5% \n Diamond shows next recommended dose") +
+    geom_point(aes(x=dose, y=q50), data=df[data$ndose[[length(data$ndose)]][[1]], ], size=4, col=4, shape=9)
+
+  p
+}
+
+################################################################################
+# No loss vector supplied, each cohort
+
+get.bcrm.data.noeach <- function(data){
+  data.frame(dose = rep(data$dose, length(data$ndose)),
+             target.tox = data$target.tox,
+             cohort = rep(0:(length(data$ndose)-1), each=length(data$dose)),
+             est = c(sapply(1:length(data$ndose), function(i){ data$ndose[[i]]$est })),
+             ndose = rep(sapply(1:length(data$ndose), function(i){ dose[data$ndose[[i]]$ndose] }),
+                         each=length(dose)))
+}
+
+ggplot.bcrm_logit2_noloss_each <- function(data, mapping=aes(), dose.label){
+  df <- get.bcrm.data.noeach(data)
+
+  p <-
+  ggplot(df, aes(x=dose, y=est)) +
+    geom_point()+
+    geom_hline(aes(yintercept=target.tox), col=4, linetype=2)  +
+    xlab(dose.label) +
+    ylab("Probability of DLT") +
+    ylim(0, 1) +
+    ggtitle("Posterior point estimates \n Diamond shows next recommended dose") +
+    geom_point(aes(x=ndose, y=q50), data=df[df$dose==df$ndose, ], size=4, col=4, shape=9) +
+    facet_wrap(~ cohort)
+
+  p
+}
+
+get.bcrm.data.each <- function(data){
+  data.frame(dose = rep(dose, length(data$ndose)),
+             target.tox = data$target.tox,
+             cohort = rep(0:(length(data$ndose)-1), each=length(dose)),
+             est = c(sapply(1:length(data$ndose), function(i){data$ndose[[i]]$est})),
+             mean = c(sapply(1:length(data$ndose), function(i){data$ndose[[i]]$mean})),
+             q2.5 = c(sapply(1:length(data$ndose), function(i){data$ndose[[i]]$quantiles["2.5%", ]})),
+             q25 = c(sapply(1:length(data$ndose), function(i){data$ndose[[i]]$quantiles["25%", ]})),
+             q50 = c(sapply(1:length(data$ndose), function(i){data$ndose[[i]]$quantiles["50%", ]})),
+             q75 = c(sapply(1:length(data$ndose), function(i){data$ndose[[i]]$quantiles["75%", ]})),
+             q97.5 = c(sapply(1:length(data$ndose), function(i){data$ndose[[i]]$quantiles["97.5%", ]})),
+             ndose = rep(sapply(1:length(data$ndose), function(i){dose[data$ndose[[i]]$ndose]}), each=length(dose)))
+}
+
+ggplot.bcrm_nologit2_noloss_each <- function(data=NULL, mapping=aes()){
+  df <- get.bcrm.data.each(data)
+
+  p <-
+  ggplot(df, aes(x=dose, ymin=q2.5, ymax=q97.5)) +
+    geom_errorbar(colour = "red") +
+    geom_pointrange(aes(x = dose, y=q50, ymin=q25, ymax=q75), fill="red") +
+    geom_hline(aes(yintercept = target.tox), data=df, col=4, linetype=2) +
+    xlab(dose.label) +
+    ylab("Probability of DLT") +
+    ylim(0, 1) +
+    ggtitle("Posterior p(DLT) quantiles: 2.5%,  25%,  50%,  75%,  97.5% \n Diamond shows next recommended dose") +
+    geom_point(aes(x=ndose, y=q50), data=df[df$dose==df$ndose, ], size=4, col=4, shape=9) +
+    facet_wrap(~ cohort)
+
+  p
+}
+
+################################################################################
+# Loss vector supplied
+
+get.bcrm.interval.data <- function(data){
+  data.frame(cohort=rep(0:(length(data$ndose) - 1), each=length(data$loss)),
+             xmin=min(data$dose),
+             xmax=max(data$dose),
+             ymin=c(0, tox.cutpoints),
+             ymax=c(data$tox.cutpoints, 1),
+             Loss=data$loss)
+}
+
+ggplot.bcrm_loss <- function(data=NULL, mapping=aes()){
+  df <- get.bcrm.data.noeach(data)
+  df.interval <- get.bcrm.interval.data(data)
+
+  p <-
+  ggplot(df, aes(x=dose, ymin=q2.5, ymax=q97.5), colour="red") +
+    geom_errorbar() +
+    geom_pointrange(aes(x=dose, y=q50, ymin=q25, ymax=q75), data=df, fill="red") +
+    geom_point(aes(x=dose, y=q50), data=df[data$ndose[[length(data$ndose)]][[1]], ], size=4, col=4, shape=9) +
+    geom_rect(aes(xmin=xmin, ymin=ymin, xmax=xmax, ymax=ymax, fill=Loss), data=df.intervals, alpha=0.3) +
+    scale_fill_gradient(breaks=sort(unique(df.intervals$Loss)), high="red", low="#99ccff", guide="legend") +
+    xlab(dose.label) +
+    ylab("Probability of DLT") +
+    ylim(0, 1) +
+    ggtitle("Posterior p(DLT) quantiles: 2.5%,  25%,  50%,  75%,  97.5% \n Diamond shows next recommended dose")
+
+  p
+}
+
+ggplot.bcrm_loss_each <- function(data=NULL, mapping=aes()){
+  df <- get.bcrm.data.each(data)
+  df.interval <- get.bcrm.interval.data(data)
+
+  p <-
+  ggplot(df, aes(x=dose, ymin=q2.5, ymax=q97.5), colour="red") +
+    geom_errorbar() +
+    geom_pointrange(aes(x=dose, y=q50, ymin=q25, ymax=q75), data=df, fill="red") +
+    geom_point(aes(x=ndose, y=q50), data=df[df$dose==df$ndose, ], size=4, col=4, shape=9) +
+    geom_rect(aes(xmin=xmin, ymin=ymin, xmax=xmax, ymax=ymax, fill=Loss), data=df.intervals, alpha=0.3) +
+    xlab(dose.label) +
+    ylab("Probability of DLT") +
+    ylim(0, 1) +
+    ggtitle(title) +
+    facet_wrap(~ cohort)
+
+  p
+}
+
+################################################################################
+# Trajectory
 
 ggplot.bcrm_trajectory <- function(data=NULL, mapping=aes(), cols=c(No="blue", Yes="orange")){
+  data <- data$data
   data$Toxicity <- ifelse(data$tox == 1, "Yes", "No")
 
   p <-
@@ -186,51 +279,4 @@ ggplot.bcrm_trajectory <- function(data=NULL, mapping=aes(), cols=c(No="blue", Y
     ylab("Dose Level")
 
   p
-}
-
-
-get.bcrm.plot.data <- function(data, each, trajectory, dose){
-  if (trajectory){
-    df <- data
-    df$Toxicity <- ifelse(df$tox == 1, "Yes", "no")
-  } else if (!each){
-    if(data$method %in% c("exact", "exact.sim") & data$ff=="logit2"){
-      df <- data.frame(dose = dose, target.tox = data$target.tox, est = data$ndose[[length(data$ndose)]]$est)
-    } else {
-      df <- data.frame(dose = dose,
-                       target.tox = data$target.tox,
-                       est = data$ndose[[length(data$ndose)]]$est,
-                       mean = data$ndose[[length(data$ndose)]]$mean,
-                       q2.5 = data$ndose[[length(data$ndose)]]$quantiles["2.5%", ],
-                       q25 = data$ndose[[length(data$ndose)]]$quantiles["25%", ],
-                       q50 = data$ndose[[length(data$ndose)]]$quantiles["50%", ],
-                       q75 = data$ndose[[length(data$ndose)]]$quantiles["75%", ],
-                       q97.5 = data$ndose[[length(data$ndose)]]$quantiles["97.5%", ])
-    }
-    df2 <- data.frame(dose = factor(c(rep(dose, data$tox), rep(dose, data$notox)), levels=dose),
-                      Outcome = factor(c(rep("DLT", sum(data$tox)), rep("No DLT", sum(data$notox))), levels=c("DLT", "No DLT")))
-  } else {
-    if(data$method %in% c("exact", "exact.sim") & data$ff=="logit2"){
-      df <- data.frame(dose = rep(dose, length(data$ndose)),
-                       target.tox = data$target.tox,
-                       cohort = rep(0:(length(data$ndose)-1), each=length(dose)),
-                       est = c(sapply(1:length(data$ndose), function(i){data$ndose[[i]]$est})),
-                       ndose = rep(sapply(1:length(data$ndose), function(i){dose[data$ndose[[i]]$ndose]}), each=length(dose)))
-    } else {
-      df <- data.frame(dose = rep(dose, length(data$ndose)),
-                       target.tox = data$target.tox,
-                       cohort = rep(0:(length(data$ndose)-1), each=length(dose)),
-                       est = c(sapply(1:length(data$ndose), function(i){data$ndose[[i]]$est})),
-                       mean = c(sapply(1:length(data$ndose), function(i){data$ndose[[i]]$mean})),
-                       q2.5 = c(sapply(1:length(data$ndose), function(i){data$ndose[[i]]$quantiles["2.5%", ]})),
-                       q25 = c(sapply(1:length(data$ndose), function(i){data$ndose[[i]]$quantiles["25%", ]})),
-                       q50 = c(sapply(1:length(data$ndose), function(i){data$ndose[[i]]$quantiles["50%", ]})),
-                       q75 = c(sapply(1:length(data$ndose), function(i){data$ndose[[i]]$quantiles["75%", ]})),
-                       q97.5 = c(sapply(1:length(data$ndose), function(i){data$ndose[[i]]$quantiles["97.5%", ]})),
-                       ndose = rep(sapply(1:length(data$ndose), function(i){dose[data$ndose[[i]]$ndose]}), each=length(dose)))
-    }
-    df2 <- data.frame()
-  }
-
-  list(df, df2)
 }
