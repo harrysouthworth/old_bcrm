@@ -46,6 +46,8 @@
 #' Reassessment Method Designs for Phase I Dose-Finding Trials. \emph{Journal
 #' of Statistical Software} (2013) 54: 1--26.
 #' \url{http://www.jstatsoft.org/article/view/v054i13}
+#' @method print bcrm
+#' @export
 print.bcrm <- function(x, ...){
   cat(" Estimation method: ", x$method, "\n")
   ff.txt <- switch(x$ff
@@ -144,9 +146,9 @@ print.bcrm <- function(x, ...){
   }
 }
 
-#-----------------------------------------------------------------------
-#    Print function for an object of class bcrm.sim
-# -----------------------------------
+#' Print function for an object of class bcrm.sim
+#' @method print bcrm.sim
+#' @export
 print.bcrm.sim <- function(x, tox.cutpoints=NULL, trajectories=FALSE, threep3=FALSE, ...){
   if(trajectories){
     ## sample size

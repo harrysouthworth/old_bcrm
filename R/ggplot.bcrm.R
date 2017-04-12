@@ -19,7 +19,11 @@
 #' @param file File name where the dose-response plots are stored,  in a pdf
 #' format. The program will ammend the current sample size to the end of the
 #' file name.
+#' @param print.it Whether to print the graph to screen. Defaults to
+#'   \code{print.it=TRUE}.
 #' @param ... Further arguments passed to or from other methods
+#' @return If \code{trajectory=FALSE}), the function invisibly returns list
+#'   containing 2 objects of class `ggplot'.
 #' @author Michael Sweeting \email{mjs212@@medschl.cam.ac.uk} (University of
 #' Cambridge,  UK)
 #' @seealso \code{\link{bcrm}}
@@ -30,7 +34,7 @@
 #' @method ggplot bcrm
 #' @export
 ggplot.bcrm <- function(data, mapping=aes(), file=NULL, each=FALSE, title="Posterior p(DLT) quantiles: 2.5%,  25%,  50%,  75%,  97.5% \n Diamond shows next recommended dose",
-                      trajectory=FALSE, cols.traj=c(No="blue", Yes="orange"), ..., environment=NULL){
+                      trajectory=FALSE, cols.traj=c(No="blue", Yes="orange"), print.it=TRUE, ..., environment=NULL){
   if (is.null(data$data$dose)){
     data$data$dose <- data$sdose
   }
@@ -48,41 +52,43 @@ ggplot.bcrm <- function(data, mapping=aes(), file=NULL, each=FALSE, title="Poste
     a <- if(is.null(data$loss)){
       if(!each){
         if(logit2){
-          ggplot.bcrm_logit2_noloss(data)
+          ggplot.bcrm_logit2_noloss(data, dose.label=dose.label)
         } else {
-          ggplot.bcrm_nologit2_noloss(data)
+          ggplot.bcrm_nologit2_noloss(data, dose.label=dose.label)
         }
       } else { # each is TRUE
         if(logit2){
-          ggplot.bcrm_logit2_noloss_each(data)
+          ggplot.bcrm_logit2_noloss_each(data, dose.label=dose.label)
         } else {
-          ggplot.bcrm_nologit2_noloss_each(data)
+          ggplot.bcrm_nologit2_noloss_each(data, dose.label=dose.label)
         }
       }
     } else {
       if(!each){
-        ggplot.bcrm_loss(data)
+        ggplot.bcrm_loss(data, dose.label=dose.label)
       } else {
-        ggplot.bcrm_loss_each(data)
+        ggplot.bcrm_loss_each(data, dose.label=dose.label)
       }
     }
 
     # Get the barchart, if possible
     b <- try(ggplot.bcrm_barchart(data, cols=cols.barchart, dose.label=dose.label), silent=TRUE)
-    if (class(b) == "try-error"){
+    if (class(b)[1] == "try-error"){
       b <- NULL
     }
 
-
-    if(!each){
-      grid.newpage()
-      pushViewport(viewport(layout=grid.layout(2, 1)))
-      vplayout <- function(x, y)  viewport(layout.pos.row=x, layout.pos.col=y)
-      print(a, vp=vplayout(1, 1))
-      if(!is.null(b)) print(b, vp=vplayout(2, 1))
-    } else {
-      print(a)
+    if (print.it){
+      if(!each){
+        grid::grid.newpage()
+        grid::pushViewport(grid::viewport(layout=grid::grid.layout(2, 1)))
+        vplayout <- function(x, y)  grid::viewport(layout.pos.row=x, layout.pos.col=y)
+        print(a, vp=vplayout(1, 1))
+        if(!is.null(b)) print(b, vp=vplayout(2, 1))
+      } else {
+        print(a)
+      }
     }
+    invisible(list(a, b))
   }
 }
 
@@ -90,7 +96,7 @@ ggplot.bcrm <- function(data, mapping=aes(), file=NULL, each=FALSE, title="Poste
 # Barchart
 
 ggplot.bcrm_barchart <- function(data, mapping=aes(), cols=cols.barchart, dose.label){
-  df2 <- data.frame(dose = factor(c(rep(data$dose, data$tox), rep(data$dose, data$notox)), levels=dose),
+  df2 <- data.frame(dose = factor(c(rep(data$dose, data$tox), rep(data$dose, data$notox)), levels=data$dose),
                     Outcome = factor(c(rep("DLT", sum(data$tox)), rep("No DLT", sum(data$notox))), levels=c("DLT", "No DLT")))
 
   p <-
@@ -106,7 +112,7 @@ ggplot.bcrm_barchart <- function(data, mapping=aes(), cols=cols.barchart, dose.l
 ################################################################################
 # No loss vector supplied
 
-ggplot.bcrm_logit2_noloss <- function(data=NULL, mapping=aes()){
+ggplot.bcrm_logit2_noloss <- function(data=NULL, mapping=aes(), dose.label){
   d <- data$data
   ndose <- d$ndose[[length(d$ndose)]]$ndose
 
@@ -129,7 +135,7 @@ ggplot.bcrm_nologit2_noloss <- function(data=NULL, mapping=aes(), dose.label){
     stop("The quantiles in data$ndose should contain 5 rows")
   }
 
-  df <- data.frame(dose = dose,
+  df <- data.frame(dose = data$dose,
                    target.tox = data$target.tox,
                    est = data$ndose[[length(data$ndose)]]$est,
                    mean = data$ndose[[length(data$ndose)]]$mean,
@@ -196,7 +202,7 @@ get.bcrm.data.each <- function(data){
              ndose = rep(sapply(1:length(data$ndose), function(i){dose[data$ndose[[i]]$ndose]}), each=length(dose)))
 }
 
-ggplot.bcrm_nologit2_noloss_each <- function(data=NULL, mapping=aes()){
+ggplot.bcrm_nologit2_noloss_each <- function(data=NULL, mapping=aes(), dose.label){
   df <- get.bcrm.data.each(data)
 
   p <-
@@ -226,7 +232,7 @@ get.bcrm.interval.data <- function(data){
              Loss=data$loss)
 }
 
-ggplot.bcrm_loss <- function(data=NULL, mapping=aes()){
+ggplot.bcrm_loss <- function(data=NULL, mapping=aes(), dose.label){
   df <- get.bcrm.data.noeach(data)
   df.interval <- get.bcrm.interval.data(data)
 
@@ -245,7 +251,7 @@ ggplot.bcrm_loss <- function(data=NULL, mapping=aes()){
   p
 }
 
-ggplot.bcrm_loss_each <- function(data=NULL, mapping=aes()){
+ggplot.bcrm_loss_each <- function(data=NULL, mapping=aes(), dose.label){
   df <- get.bcrm.data.each(data)
   df.interval <- get.bcrm.interval.data(data)
 
