@@ -35,7 +35,9 @@
 #' Reassessment Method Designs for Phase I Dose-Finding Trials. \emph{Journal
 #' of Statistical Software} (2013) 54: 1--26.
 #' \url{http://www.jstatsoft.org/article/view/v054i13}
-plot.bcrm.sim <- function(x, trajectories=FALSE, file=NULL, threep3=FALSE, ...){
+#' @method ggplot bcrm.sim
+#' @export
+ggplot.bcrm.sim <- function(x, trajectories=FALSE, file=NULL, threep3=FALSE, quietly=TRUE, ...){
   dose <- if(is.null(x[[1]]$dose)) x[[1]]$sdose else x[[1]]$dose
   dose.label <- if(is.null(x[[1]]$dose)) "Standardised dose" else "Dose"
 
@@ -79,20 +81,24 @@ plot.bcrm.sim <- function(x, trajectories=FALSE, file=NULL, threep3=FALSE, ...){
     }
   } else {
     if(threep3 & is.null(x[[1]]$threep3)){
-      cat("\n Calculating 3+3 operating characteristics....\n")
-      x[[1]]$threep3 <- threep3(x[[1]]$truep, x[[1]]$start)
+      if (!quietly){
+        cat("\n Calculating 3+3 operating characteristics....\n")
+      }
+      x[[1]]$threep3 <- threep3(x[[1]]$truep, x[[1]]$start, quietly=quietly)
     }
     # sample size
     n <- sapply(x, function(i){dim(i$data)[1]})
     df.n <- data.frame(n)
     if(!threep3){
       a <- if(min(n)!=max(n)){
-        ggplot()+geom_histogram(aes(x=n, y=100*..density..), data=df.n, binwidth=1)+xlab("Sample size")+ylab("Percent")+ggtitle("Sample size")
+        ggplot()+geom_histogram(aes(x=n, y=100*..density..), data=df.n, binwidth=1)+xlab("Sample size") +
+          ylab("Percent") +
+          ggtitle("Sample size")
       } else { NULL }
     } else {
       n.threep3 <- x[[1]]$threep3$ssize
       df.n.threep3 <- data.frame(n=c(n, n.threep3),
-                                 weight=c(rep(1/length(n), length(n)), data[[1]]$threep$prob),
+                                 weight=c(rep(1/length(n), length(n)), x[[1]]$threep$prob),
                                  Method=rep(c("CRM", "3+3"), c(length(n), length(n.threep3))))
       a <- ggplot() +
         stat_bin(aes(x=n, y=100*..density.., weight=weight, fill=Method), data=df.n.threep3, binwidth=1, position="dodge") +
@@ -133,7 +139,9 @@ plot.bcrm.sim <- function(x, trajectories=FALSE, file=NULL, threep3=FALSE, ...){
         ggtitle("Recommendation")
     } else {
       rec.threep3 <- dose[x[[1]]$threep3$mtd]
-      df.rec.threep3 <- data.frame(rec=factor(c(rec, rec.threep3)), weight=c(rep(1/length(rec), length(rec)), x[[1]]$threep$prob[x[[1]]$threep3$mtd!=0]), Method=rep(c("CRM", "3+3"), c(length(rec), length(rec.threep3))))
+      df.rec.threep3 <- data.frame(rec=factor(c(rec, rec.threep3)),
+                                   weight=c(rep(1/length(rec), length(rec)), x[[1]]$threep$prob[x[[1]]$threep3$mtd!=0]),
+                                   Method=rep(c("CRM", "3+3"), c(length(rec), length(rec.threep3))))
       c <- ggplot() +
         geom_bar(aes(x=rec, y=100*..count.., weight=weight, fill=Method), data=df.rec.threep3, position="dodge") +
         xlab(dose.label) +
@@ -146,19 +154,25 @@ plot.bcrm.sim <- function(x, trajectories=FALSE, file=NULL, threep3=FALSE, ...){
     if(!threep3){
       bw <- max(diff(range(obs))/30, 1)
       df.obs <- data.frame(obs=obs, bw=bw)
-      d <- ggplot()+geom_histogram(aes(bw=bw, x=obs, y=100*..density..*bw), data=df.obs, binwidth=bw)+xlab("Percentage of subjects with DLTs")+ylab("Percent")+ggtitle("DLTs")
+      d <- ggplot() +
+        geom_histogram(aes(bw=bw, x=obs, y=100*..density..*bw), data=df.obs, binwidth=bw) +
+        xlab("Percentage of subjects with DLTs")+ylab("Percent")+ggtitle("DLTs")
     } else {
       obs.threep3 <- 100*x[[1]]$threep3$dlt.no/x[[1]]$threep3$ssize
       bw <- diff(range(c(obs, obs.threep3)))/30
       df.obs.threep3 <- data.frame(bw=bw, obs=c(obs, obs.threep3), weight=c(rep(1/length(obs), length(obs)), x[[1]]$threep$prob), Method=rep(c("CRM", "3+3"), c(length(obs), length(obs.threep3))))
       df.obs.threep3 <- subset(df.obs.threep3, df.obs.threep3$weight>0)
-      d <- ggplot()+geom_histogram(aes(bw=bw, x=obs, y=100*..density..*bw, weight=weight, fill=Method), data=df.obs.threep3, binwidth=bw, position="dodge")+xlab("Percentage of subjects with DLTs")+ylab("Percent")+ggtitle("DLTs")
+      d <- ggplot(data=df.obs.threep3) +
+        geom_histogram(aes(bw=bw, x=obs, y=100*..density..*bw, weight=weight, fill=Method),
+                       binwidth=bw, position="dodge") +
+        xlab("Percentage of subjects with DLTs") +
+        ylab("Percent")+ggtitle("DLTs")
     }
     if(!is.null(file))
       pdf(paste(file, ".pdf", sep=""), ...)
-    grid.newpage()
-    pushViewport(viewport(layout=grid.layout(2, 2)))
-    vplayout <- function(x, y)  viewport(layout.pos.row=x, layout.pos.col=y)
+    grid::grid.newpage()
+    grid::pushViewport(grid::viewport(layout=grid::grid.layout(2, 2)))
+    vplayout <- function(x, y)  grid::viewport(layout.pos.row=x, layout.pos.col=y)
     if(!is.null(a)) print(a, vp=vplayout(1, 1))
     print(b, vp=vplayout(1, 2))
     print(c, vp=vplayout(2, 1))
