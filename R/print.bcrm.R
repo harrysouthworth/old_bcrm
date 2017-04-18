@@ -149,7 +149,7 @@ print.bcrm <- function(x, ...){
 #' Print function for an object of class bcrm.sim
 #' @method print bcrm.sim
 #' @export
-print.bcrm.sim <- function(x, tox.cutpoints=NULL, trajectories=FALSE, threep3=FALSE, ...){
+print.bcrm.sim <- function(x, tox.cutpoints=NULL, trajectories=FALSE, threep3=FALSE, digits=3, ...){
   if(trajectories){
     ## sample size
     n <- sapply(x, function(i){dim(i$data)[1]})
@@ -173,25 +173,17 @@ print.bcrm.sim <- function(x, tox.cutpoints=NULL, trajectories=FALSE, threep3=FA
       rownames(tab0) <- "Sample size"
       colnames(tab0) <- c("Mean", "Minimum", "Maximum")
     }
-    exp <- sapply(x, function(i){(i$tox+i$notox)/sum(i$tox+i$notox)})
-    exp.tab <- apply(exp, 1, mean)
-    rec <- sapply(x, function(i){i$ndose[[length(i$ndose)]]$ndose})
-    rec.tab <- prop.table(table(factor(rec, levels=1:length(x[[1]]$tox))))
-    tab <- signif(rbind(exp.tab, rec.tab), 3)
-    rownames(tab) <- c("Experimentation proportion", "Recommendation proportion")
-    dose <- if(is.null(x[[1]]$dose)){1:length(x[[1]]$truep)} else {x[[1]]$dose}
-    colnames(tab) <- dose
-    names(dimnames(tab)) <- c("", "Doses")
+
+    tab <- dlt.table(x, digits=digits)
+
     if(is.null(tox.cutpoints)){
       tox.cutpoints <- seq(0, 1, by=0.2)
     } else {
       tox.cutpoints <- unique(c(0, tox.cutpoints, 1))
     }
-    exp.tox <- prop.table(table(cut(unlist(sapply(x, function(i){rep(i$truep, (i$tox+i$notox))}, simplify=FALSE)), tox.cutpoints, include.lowest=T)))
-    rec.tox <- prop.table(table(cut(sapply(x, function(i){i$truep[i$ndose[[length(i$ndose)]]$ndose]}), tox.cutpoints, include.lowest=T)))
-    tab2 <- signif(rbind(exp.tox, rec.tox), 3)
-    rownames(tab2) <- c("Experimentation proportion", "Recommendation proportion")
-    names(dimnames(tab2)) <- c("", "Probability of DLT")
+
+    tab2 <- oc.table(x, cutpoints=tox.cutpoints, digits=digits)
+
     cat("Operating characteristics based on ", length(x), " simulations: \n \n")
     print(tab0)
     cat("\n")
@@ -199,7 +191,7 @@ print.bcrm.sim <- function(x, tox.cutpoints=NULL, trajectories=FALSE, threep3=FA
     cat("\n")
     print(tab2)
     if(threep3 & is.null(x[[1]]$threep3)){
-      cat("\n Calculating 3+3 operating characteristics....\n")
+      message("\n Calculating 3+3 operating characteristics....\n")
       x[[1]]$threep3 <- threep3(x[[1]]$truep, x[[1]]$start)
     }
     if(threep3){
@@ -207,5 +199,5 @@ print.bcrm.sim <- function(x, tox.cutpoints=NULL, trajectories=FALSE, threep3=FA
       print.threep3(x[[1]]$threep3, tox.cutpoints=tox.cutpoints, dose=dose)
     }
   }
-  invisible(list(rec=rec, exp=exp))
+  invisible(list(rec=tab2[2, ], exp=tab2[1, ]))
 }

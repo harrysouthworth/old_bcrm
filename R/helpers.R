@@ -214,7 +214,7 @@ get.dose  <-  function( dose , ncurrent, cohort) {
 #' hist(samples.alpha)
 #'
 #' @export getprior
-getprior  <-  function(prior.alpha,  n) {
+getprior  <-  function(prior.alpha, n) {
   type  <-  prior.alpha[[1]]
   a     <-  prior.alpha[[2]]
   b     <-  prior.alpha[[3]]
@@ -222,14 +222,39 @@ getprior  <-  function(prior.alpha,  n) {
     prior <- rgamma(n, a) * b
   }
   else if ( type == 2 ) {
-    prior <- sapply(1:length(a), function(i){ runif(n, a[i], b[i])} )
+    prior <- sapply(1:length(a), function(i){ stats::runif(n, a[i], b[i])} )
   }
   else if (type == 3) {
-    prior <- rlnorm(n, a, sqrt(b))
+    prior <- stats::rlnorm(n, a, sqrt(b))
   }
   else if (type == 4) {
-    log.prior <- rmvnorm(n, a, b)
+    log.prior <- mvtnorm::rmvnorm(n, a, b)
     prior <- exp(log.prior)
   }
   return (prior)
+}
+
+oc.table <- function(x, cutpoints, digits=3){
+  exp.tox <- prop.table(table(cut(unlist(sapply(x, function(i){rep(i$truep, (i$tox+i$notox))}, simplify=FALSE)), cutpoints, include.lowest=TRUE)))
+  rec.tox <- prop.table(table(cut(sapply(x, function(i){i$truep[i$ndose[[length(i$ndose)]]$ndose]}), cutpoints, include.lowest=TRUE)))
+  tab <- signif(rbind(exp.tox, rec.tox), digits=digits)
+  rownames(tab) <- c("Experimentation proportion", "Recommendation proportion")
+  names(dimnames(tab)) <- c("", "Probability of DLT")
+
+  tab
+}
+
+dlt.table <- function(x, digits=3){
+  exp <- sapply(x, function(i){(i$tox+i$notox)/sum(i$tox+i$notox)})
+  exp.tab <- apply(exp, 1, mean)
+  rec <- sapply(x, function(i){i$ndose[[length(i$ndose)]]$ndose})
+  rec.tab <- prop.table(table(factor(rec, levels=1:length(x[[1]]$tox))))
+
+  tab <- signif(rbind(exp.tab, rec.tab), digits=digits)
+  rownames(tab) <- c("Experimentation proportion", "Recommendation proportion")
+  dose <- if(is.null(x[[1]]$dose)){1:length(x[[1]]$truep)} else {x[[1]]$dose}
+  colnames(tab) <- dose
+  names(dimnames(tab)) <- c("", "Doses")
+
+  tab
 }
