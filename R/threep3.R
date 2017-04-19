@@ -104,20 +104,24 @@ print.threep3 <- function(x, tox.cutpoints=NULL, dose=NULL, ...){
   n.average <- weighted.mean(x$ssize, x$prob)
   n.min <- min(x$ssize[x$prob>0])
   n.max <- max(x$ssize[x$prob>0])
+
   tab0 <- cbind(n.average, n.min, n.max)
   rownames(tab0) <- "Sample size"
   colnames(tab0) <- c("Mean", "Minimum", "Maximum")
+
   exp <- c(NA, x$exp)
   rec <- xtabs(x$prob~x$mtd)
   tab <- signif(rbind(exp, rec), 3)
   rownames(tab) <- c("Experimentation proportion", "Recommendation proportion")
   colnames(tab) <- c(paste("<", dose[1]), dose)
   names(dimnames(tab)) <- c("", "Doses")
+
   if(is.null(tox.cutpoints)){
     tox.cutpoints <- seq(0, 1, by=0.2)
   } else {
     tox.cutpoints <- unique(c(0, tox.cutpoints, 1))
   }
+
   exp.tox <- xtabs(x$exp~cut(x$truep, tox.cutpoints, include.lowest=T))
   rec.tox <- xtabs(rec[-1]~cut(x$truep, tox.cutpoints, include.lowest=T))
   tab2 <- signif(rbind(exp.tox, rec.tox), 3)

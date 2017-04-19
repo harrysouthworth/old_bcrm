@@ -108,7 +108,7 @@
 #' be treated at final maximum tolerated dose (MTD) estimate,  \emph{i.e.} if
 #' the next recommended dose has already been administered to \code{nmtd}
 #' patients then the trial will stop} \item{list("precision")}{ A vector of the
-#' lower and upper percentage points that the MTD 95\% credible intervals for
+#' lower and upper proportions (in the [0, 1] interval) that the MTD 95\% credible intervals for
 #' the risk of toxicity should lie within} \item{list("nmin")}{ The minimum
 #' sample size of the trial. To be used in conjunction with \code{nmtd} or
 #' \code{precision}} }

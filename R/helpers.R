@@ -52,6 +52,9 @@ check.bcrm.args <- function(N, stop, tox, notox, p.tox0, sdose, sdose.calculate,
   if(!(length(stop$precision) %in% c(0, 2))){
     stop("stop$precision must be a vector of length two")
   }
+  if (length(stop$precision == 2) && (max(stop$precision) > 1 | min(stop$precision < 0))){
+    stop("stop$precision must contain 2 numbers in [0, 1]")
+  }
   if(!is.null(stop$nmax) & !is.null(stop$nmin)) {
     if(stop$nmin>stop$nmax) stop("stop$nmin must be less than stop$nmax")
   }
@@ -234,7 +237,7 @@ getprior  <-  function(prior.alpha, n) {
   return (prior)
 }
 
-oc.table <- function(x, cutpoints, digits=3){
+dlt.table <- function(x, cutpoints, digits=3){
   exp.tox <- prop.table(table(cut(unlist(sapply(x, function(i){rep(i$truep, (i$tox+i$notox))}, simplify=FALSE)), cutpoints, include.lowest=TRUE)))
   rec.tox <- prop.table(table(cut(sapply(x, function(i){i$truep[i$ndose[[length(i$ndose)]]$ndose]}), cutpoints, include.lowest=TRUE)))
   tab <- signif(rbind(exp.tox, rec.tox), digits=digits)
@@ -244,7 +247,7 @@ oc.table <- function(x, cutpoints, digits=3){
   tab
 }
 
-dlt.table <- function(x, digits=3){
+oc.table <- function(x, dose, digits=3){
   exp <- sapply(x, function(i){(i$tox+i$notox)/sum(i$tox+i$notox)})
   exp.tab <- apply(exp, 1, mean)
   rec <- sapply(x, function(i){i$ndose[[length(i$ndose)]]$ndose})
@@ -252,7 +255,6 @@ dlt.table <- function(x, digits=3){
 
   tab <- signif(rbind(exp.tab, rec.tab), digits=digits)
   rownames(tab) <- c("Experimentation proportion", "Recommendation proportion")
-  dose <- if(is.null(x[[1]]$dose)){1:length(x[[1]]$truep)} else {x[[1]]$dose}
   colnames(tab) <- dose
   names(dimnames(tab)) <- c("", "Doses")
 

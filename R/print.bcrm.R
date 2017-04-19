@@ -160,6 +160,9 @@ print.bcrm.sim <- function(x, tox.cutpoints=NULL, trajectories=FALSE, threep3=FA
     }
     return(list(doses=dose.mat, outcomes=outcome.mat))
   } else {
+
+    dose <- if(is.null(x[[1]]$dose)){1:length(x[[1]]$truep)} else {x[[1]]$dose}
+
     # average sample size
     n.average <- mean(sapply(x, function(i){dim(i$data)[1]}))
     n.min <- min(sapply(x, function(i){dim(i$data)[1]}))
@@ -174,7 +177,7 @@ print.bcrm.sim <- function(x, tox.cutpoints=NULL, trajectories=FALSE, threep3=FA
       colnames(tab0) <- c("Mean", "Minimum", "Maximum")
     }
 
-    tab <- dlt.table(x, digits=digits)
+    tab <- oc.table(x, dose, digits=digits)
 
     if(is.null(tox.cutpoints)){
       tox.cutpoints <- seq(0, 1, by=0.2)
@@ -182,7 +185,7 @@ print.bcrm.sim <- function(x, tox.cutpoints=NULL, trajectories=FALSE, threep3=FA
       tox.cutpoints <- unique(c(0, tox.cutpoints, 1))
     }
 
-    tab2 <- oc.table(x, cutpoints=tox.cutpoints, digits=digits)
+    tab2 <- dlt.table(x, cutpoints=tox.cutpoints, digits=digits)
 
     cat("Operating characteristics based on ", length(x), " simulations: \n \n")
     print(tab0)
