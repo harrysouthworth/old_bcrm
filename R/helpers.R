@@ -260,3 +260,28 @@ oc.table <- function(x, dose, digits=3){
 
   tab
 }
+
+#' Get prior distribution for simple logistic model
+#' @details The original publication of Sweeting et al contains an error. The formula
+#' for the variance of log(beta2) is erroneous and a corrected version is implemented
+#' here.
+#' @param target.tox The target toxicity level.
+#' @param doses Vector of the actual (not standardized) doses to be used.
+#' @param ref.dose The dose expected to have the desired target toxicity.
+#' @param dose1.tox.above The user should be 95\% confidence the start dose will have toxicity above this level.
+#' @param ref.dose.tox.above The user should have 10\% confidence the reference dose will have toxicity above this level.
+elicitLogit2Prior <- function(target.tox, doses, ref.dose, dose1.tox.above, ref.dose.tox.above){
+  logb1 <- log(target.tox / (1 - target.tox))
+  vlogb1 <- ( (log(dose1.tox.above / (1 - dose1.tox.above)) - log(target.tox / (1 - target.tox))) / qnorm(.05) )^2
+
+  adj <- log(dose.label[1] / dose.label[ref.dose])
+
+  logb2 <- log((log(p.tox0[1] / (1 - p.tox0[1])) - log(target.tox / (1 - target.tox))) / adj)
+  vb2 <- ((log(ref.dose.tox.above / (1 - ref.dose.tox.above)) - logb1 - exp(logb2) * adj) / qnorm(.9))^2
+
+  vb2 <- (vb2 - vlogb1) / (adj^2)
+
+  vlogb2 <- log(vb2 / (exp(logb2)^2) + 1)
+
+  list(mu=c(logb1, logb2), Sigma=diag(c(vlogb1, vlogb2)))
+}

@@ -203,14 +203,15 @@ which.f  <-  function( ff ) {
 find.x  <-  function( ff,  ptox,  alpha ) {
   if ( ff == "ht" ) {
     x <- atanh(2*ptox^(1/alpha)-1)
-  }
-  else if ( ff == "logit1" )
+  } else if ( ff == "logit1" ){
     x  <-  (qlogis(ptox)-3)/alpha
-  else if ( ff == "power")
+  } else if ( ff == "power"){
     x  <-  exp(log(ptox)/alpha)
-  else if (ff=="logit2"){
-    if(is.vector(alpha))  alpha <- matrix(alpha, ncol=2)
-    x  <-  (qlogis(ptox)-log(alpha[, 1]))/alpha[, 2]
+  } else if (ff=="logit2"){
+    if(is.vector(alpha)){
+      alpha <- matrix(alpha, ncol=2)
+    }
+    x  <-  (qlogis(ptox) - log(alpha[, 1])) / alpha[, 2]
   }
   return( x )
 }
