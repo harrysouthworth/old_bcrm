@@ -155,8 +155,14 @@ Posterior.rjags  <-  function(tox,  notox, sdose, ff,  prior.alpha,  burnin.itr,
   path.model <- file.path(tempdir(),  "model.file.txt")
   R2WinBUGS::write.model(model.file, path.model)
   inits.list <- if (ff=="logit2")
-    list(list(log.alpha=c(-3, 0), .RNG.seed=sample(1:1e6,  size=1), .RNG.name="base::Wichmann-Hill"), list(log.alpha=c(-3, 0), .RNG.seed=sample(1:1e6,  size=1), .RNG.name="base::Wichmann-Hill"))
-  else list(list(alpha=1, .RNG.seed=sample(1:1e6,  size=1), .RNG.name="base::Wichmann-Hill"), list(alpha=1, .RNG.seed=sample(1:1e6,  size=1), .RNG.name="base::Wichmann-Hill"))
+    list(list(log.alpha=c(-3, 0),
+              .RNG.seed=sample(1:1e6, size=1),
+              .RNG.name="base::Wichmann-Hill"),
+         list(log.alpha=c(-3, 0),
+              .RNG.seed=sample(1:1e6, size=1),
+              .RNG.name="base::Wichmann-Hill"))
+  else list(list(alpha=1, .RNG.seed=sample(1:1e6,  size=1), .RNG.name="base::Wichmann-Hill"),
+            list(alpha=1, .RNG.seed=sample(1:1e6,  size=1), .RNG.name="base::Wichmann-Hill"))
 
   jagsobj <- rjags::jags.model(path.model, data=mydata, n.chains=2, quiet=TRUE, inits=inits.list)
   update(jagsobj, n.iter=burnin.itr, progress.bar="none")

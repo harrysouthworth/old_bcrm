@@ -435,7 +435,7 @@ bcrm <- function(stop=list(nmax=NULL, nmtd=NULL, precision=NULL, nmin=NULL),
 
   while(sim <= nsims){
     if(simulate){
-      sub.start <- 100*floor((sim-1)/100)
+      sub.start <- 100 * floor((sim - 1) / 100)
       if(sub.start > length(results)){
         results <- c(results, subset.results)
         subset.results <- list()
@@ -465,7 +465,7 @@ bcrm <- function(stop=list(nmax=NULL, nmtd=NULL, precision=NULL, nmin=NULL),
       , exact.sim = Posterior.exact.sim(new.tox, new.notox, sdose, ff, prior.alpha, pointest)
       )
     }
-    ncurrent <- sum(new.tox+new.notox)
+    ncurrent <- sum(new.tox + new.notox)
     if(is.null(data)){
       newdata <- data.frame(patient=NULL, dose=NULL, tox=NULL)
     } else{
@@ -524,7 +524,7 @@ bcrm <- function(stop=list(nmax=NULL, nmtd=NULL, precision=NULL, nmin=NULL),
       currentdata <- data.frame(patient=(ncurrent-cohort+1):ncurrent, dose=rep(current, cohort), tox=y)
       newdata <- rbind(newdata, currentdata)
 
-      if(simulate & match<length(results) & method!="exact.sim"){
+      if(simulate & match < length(results) & method!="exact.sim"){
         repeat{
           match.tox <- all(xtabs(tox~factor(dose, levels=1:k), data=results[[match]]$data[1:dim(newdata)[1], ])==xtabs(tox~factor(dose, levels=1:k), data=newdata))
           match.notox <- all(xtabs((1-tox)~factor(dose, levels=1:k), data=results[[match]]$data[1:dim(newdata)[1], ])==xtabs((1-tox)~factor(dose, levels=1:k), data=newdata))
