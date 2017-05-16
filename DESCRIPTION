@@ -12,7 +12,7 @@ Description: Implements a wide variety of one and two-parameter Bayesian CRM
     characteristics.
 License: GPL (>= 2)
 LazyLoad: yes
-Depends: ggplot2
+Depends: ggplot2, gridExtra
 Imports: mvtnorm, grid
 Suggests: R2WinBUGS, BRugs, rjags
 RoxygenNote: 6.0.1

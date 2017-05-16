@@ -189,17 +189,17 @@ ggplot.bcrm_logit2_noloss_each <- function(data, mapping=aes(), dose.label){
 }
 
 get.bcrm.data.each <- function(data){
-  data.frame(dose = rep(dose, length(data$ndose)),
+  data.frame(dose = rep(data$dose, length(data$ndose)),
              target.tox = data$target.tox,
-             cohort = rep(0:(length(data$ndose)-1), each=length(dose)),
-             est = c(sapply(1:length(data$ndose), function(i){data$ndose[[i]]$est})),
-             mean = c(sapply(1:length(data$ndose), function(i){data$ndose[[i]]$mean})),
-             q2.5 = c(sapply(1:length(data$ndose), function(i){data$ndose[[i]]$quantiles["2.5%", ]})),
-             q25 = c(sapply(1:length(data$ndose), function(i){data$ndose[[i]]$quantiles["25%", ]})),
-             q50 = c(sapply(1:length(data$ndose), function(i){data$ndose[[i]]$quantiles["50%", ]})),
-             q75 = c(sapply(1:length(data$ndose), function(i){data$ndose[[i]]$quantiles["75%", ]})),
-             q97.5 = c(sapply(1:length(data$ndose), function(i){data$ndose[[i]]$quantiles["97.5%", ]})),
-             ndose = rep(sapply(1:length(data$ndose), function(i){dose[data$ndose[[i]]$ndose]}), each=length(dose)))
+             cohort = rep(0:(length(data$ndose)-1), each=length(data$dose)),
+             est = c(sapply(1:length(data$ndose), function(i){ data$ndose[[i]]$est })),
+             mean = c(sapply(1:length(data$ndose), function(i){ data$ndose[[i]]$mean })),
+             q2.5 = c(sapply(1:length(data$ndose), function(i){ data$ndose[[i]]$quantiles["2.5%", ] })),
+             q25 = c(sapply(1:length(data$ndose), function(i){ data$ndose[[i]]$quantiles["25%", ] })),
+             q50 = c(sapply(1:length(data$ndose), function(i){ data$ndose[[i]]$quantiles["50%", ] })),
+             q75 = c(sapply(1:length(data$ndose), function(i){ data$ndose[[i]]$quantiles["75%", ] })),
+             q97.5 = c(sapply(1:length(data$ndose), function(i){ data$ndose[[i]]$quantiles["97.5%", ] })),
+             ndose = rep(sapply(1:length(data$ndose), function(i){ data$dose[data$ndose[[i]]$ndose] }), each=length(data$dose)))
 }
 
 ggplot.bcrm_nologit2_noloss_each <- function(data=NULL, mapping=aes(), dose.label){

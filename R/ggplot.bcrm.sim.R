@@ -1,3 +1,16 @@
+bcrm.get.dose <- function(x){
+  dose <- if(is.null(x[[1]]$dose)){
+    x[[1]]$sdose
+    } else{
+      x[[1]]$dose
+    }
+  attr(dose, "dose.label") <- if(is.null(x[[1]]$dose)) "Standardized dose" else "Dose"
+
+  dose
+}
+
+
+
 #-----------------------------------------------------------------------
 #    Plot function for an object of class bcrm.sim
 #    threep3     --> If TRUE (default is FALSE) then operating characteristics of the simulated design are compared against a standard rule-based 3+3 design
@@ -37,78 +50,77 @@
 #' \url{http://www.jstatsoft.org/article/view/v054i13}
 #' @method ggplot bcrm.sim
 #' @export
-ggplot.bcrm.sim <- function(data, mapping=aes(), trajectories=FALSE, file=NULL, threep3=FALSE, quietly=TRUE, ...){
-  dose <- if(is.null(data[[1]]$dose)) data[[1]]$sdose else data[[1]]$dose
-  dose.label <- if(is.null(data[[1]]$dose)) "Standardized dose" else "Dose"
-
-  if (trajectories){
-    ggplot.bcrm.sim_traj(data, mapping=NULL)
-  } else {
-    a <- ggplot.bcrm.sim_threep3(data, mapping=NULL)
-
-    b <- ggplot.bcrm.sim_experimentation(data, mapping=NULL)
-
-    cc <- ggplot.bcrm.sim_recommendation(data, mapping=NULL)
-
-    d <- ggplot.bcrm.sim_obsDLT(data, mapping=NULL)
-
-
-    grid::grid.newpage()
-    grid::pushViewport(grid::viewport(layout=grid::grid.layout(2, 2)))
-    vplayout <- function(x, y)  grid::viewport(layout.pos.row=x, layout.pos.col=y)
-    if(!is.null(a)) print(a, vp=vplayout(1, 1))
-    print(b, vp=vplayout(1, 2))
-    print(c, vp=vplayout(2, 1))
-    print(d, vp=vplayout(2, 2))
-  }
-}
-
-
-ggplot.bcrm.sim_traj <- function(data, mapping=aes(), ...){
-  ## sample size
-  n <- sapply(data, function(i){ dim(i$data)[1] })
-  traj.mat <- matrix(NA, nrow=length(data), ncol=max(n))
-  tox.mat <- matrix(NA, nrow=length(data), ncol=max(n))
-  for(i in 1:length(data)){
-    traj.mat[i, 1:n[i]] <- x[[i]]$data$dose
-    tox.mat[i, 1:n[i]] <- x[[i]]$data$tox
-  }
-  traj.df <- data.frame(patient=rep(1:max(n), each=5),
-                        Statistic=factor(rep(c("Minimum", "Lower Quartile", "Median", "Upper Quartile", "Maximum"), max(n)),
-                                         levels=c("Minimum", "Lower Quartile", "Median", "Upper Quartile", "Maximum")),
-                        traj=c(apply(traj.mat, 2, quantile, na.rm=T)))
-  df <- data.frame(patient=rep(1:max(n), each=length(data)),
-                   sim=rep(1:length(n), max(n)), traj=c(traj.mat),
-                   Toxicity=ifelse(c(tox.mat)==1, "Yes", "No"))
-
-  lt <- c("Median" = 1, "Lower Quartile" = 2, "Upper Quartile" = 2,  "Minimum" = 4, "Maximum"=4)
-  cols <-  c("No" = "black", "Yes" = "red")
-
-  if(length(data) > 1){
-    b <- ggplot(data=traj.df, aes(x=patient, y=traj, group=Statistic, linetype=Statistic)) +
-      geom_step(size=1.2, colour="blue") +
-      scale_linetype_manual(values=lt) +
-      xlab("Patient") +
-      ylab("Dose Level")
-
-    b
-  } else {
-    a <- ggplot(data=df, aes(x=patient, y=traj, col=Toxicity)) +
-      scale_colour_manual(values=cols) +
-      xlab("Patient")+ylab("Dose Level") +
-      geom_point()
-
-    a
-  }
-}
-
-ggplot.bcrm.sim_threep3 <- function(data, mapping=aes(), ...){
+ggplot.bcrm.sim <- function(data, mapping=aes(), ncol=2, trajectories=FALSE, file=NULL, threep3=FALSE, quietly=TRUE, ...){
   if(threep3 & is.null(data[[1]]$threep3)){
     if (!quietly){
       message("Calculating 3+3 operating characteristics....")
     }
     data[[1]]$threep3 <- threep3(data[[1]]$truep, data[[1]]$start, quietly=quietly)
   }
+
+
+  if (trajectories){
+    ggplot.bcrm.sim_traj(data, mapping=NULL, threep3=threep3)
+  } else {
+    a <- ggplot.bcrm.sim_threep3(data, mapping=NULL, threep3=threep3, quietly=quietly)
+
+    b <- ggplot.bcrm.sim_experimentation(data, mapping=NULL, threep3=threep3)
+
+    cc <- ggplot.bcrm.sim_recommendation(data, mapping=NULL, threep3=threep3)
+
+    d <- ggplot.bcrm.sim_obsDLT(data, mapping=NULL, threep3=threep3)
+
+    graphList <- if (is.null(a)){
+      list(b, cc, d, ncol=ncol)
+    } else {
+      list(a, b, cc, d, ncol=ncol)
+    }
+
+
+    do.call("grid.arrange", graphList)
+
+  }
+}
+
+
+ggplot.bcrm.sim_traj <- function(data, mapping=aes(), threep3=FALSE, ...){
+  dose <- bcrm.get.dose(data)
+
+  ## sample size
+  n <- sapply(data, function(i){ dim(i$data)[1] })
+  traj.mat <- matrix(NA, nrow=length(data), ncol=max(n))
+  tox.mat <- matrix(NA, nrow=length(data), ncol=max(n))
+  for(i in 1:length(data)){
+    traj.mat[i, 1:n[i]] <- data[[i]]$data$dose
+    tox.mat[i, 1:n[i]] <- data[[i]]$data$tox
+  }
+  traj.df <- data.frame(patient=rep(1:max(n), each=5),
+                        Statistic=factor(rep(c("Minimum", "Lower Quartile", "Median", "Upper Quartile", "Maximum"), max(n)),
+                                         levels=c("Minimum", "Lower Quartile", "Median", "Upper Quartile", "Maximum")),
+                        traj=c(apply(traj.mat, 2, quantile, na.rm=TRUE)))
+  df <- data.frame(patient = rep(1:max(n), each=length(data)),
+                   sim = rep(1:length(n), max(n)), traj=c(traj.mat),
+                   Toxicity = ifelse(c(tox.mat)==1, "Yes", "No"))
+
+  lt <- c("Median" = 1, "Lower Quartile" = 2, "Upper Quartile" = 2,  "Minimum" = 4, "Maximum"=4)
+  cols <-  c("No" = "black", "Yes" = "red")
+
+  if(length(data) > 1){
+    ggplot(data=traj.df, aes(x=patient, y=traj, group=Statistic, linetype=Statistic)) +
+      geom_step(size=1.2, colour="blue") +
+      scale_linetype_manual(values=lt) +
+      xlab("Patient") +
+      ylab("Dose Level")
+  } else {
+    ggplot(data=df, aes(x=patient, y=traj, col=Toxicity)) +
+      scale_colour_manual(values=cols) +
+      xlab("Patient") +
+      ylab("Dose Level") +
+      geom_point()
+  }
+}
+
+ggplot.bcrm.sim_threep3 <- function(data, mapping=aes(), threep3=FALSE, ...){
   # sample size
   n <- sapply(data, function(i){ dim(i$data)[1]} )
   df.n <- data.frame(n)
@@ -136,7 +148,9 @@ ggplot.bcrm.sim_threep3 <- function(data, mapping=aes(), ...){
 }
 
 
-ggplot.bcrm.sim_experimentation <- function(data, mapping=aes(), ...){
+ggplot.bcrm.sim_experimentation <- function(data, mapping=aes(), threep3=FALSE, ...){
+  dose <- bcrm.get.dose(data)
+
   # experimentation
   exp <- rep(dose, apply(sapply(data, function(i){ (i$tox + i$notox)} ), 1, sum))
 
@@ -145,7 +159,7 @@ ggplot.bcrm.sim_experimentation <- function(data, mapping=aes(), ...){
 
     ggplot(data=df.exp, aes(x=exp, y = 100 * ..count.. / sum(..count..))) +
       geom_bar() +
-      xlab(dose.label) +
+      xlab(attributes(dose)[["dose.label"]]) +
       ylab("Percent") +
       ggtitle("Experimentation")
   } else {
@@ -157,53 +171,64 @@ ggplot.bcrm.sim_experimentation <- function(data, mapping=aes(), ...){
 
     ggplot(data=df.exp.threep3, aes(x=exp, y=100*..count.., weight=weight, fill=Method)) +
       geom_bar(position="dodge") +
-      xlab(dose.label) +
+      xlab(attributes(dose)[["dose.label"]]) +
       ylab("Percent") +
       ggtitle("Experimentation")
   }
 }
 
-ggplot.bcrm.sim_recommendation(data, mapping=aes(), ...){
+ggplot.bcrm.sim_recommendation <- function(data, mapping=aes(), threep3=FALSE, ...){
+  dose <- bcrm.get.dose(data)
+
   # recommendation
   rec <- dose[sapply(data, function(i){ i$ndose[[length(i$ndose)]]$ndose })]
 
   if(!threep3){
     df.rec <- data.frame(rec=factor(rec))
-    c <- ggplot(data=df.rec, aes(x=rec, y = 100 * ..count.. / sum(count))) +
+    ggplot(data=df.rec, aes(x=rec, y = 100 * ..count.. / sum(count))) +
       geom_bar() +
-      xlab(dose.label) +
+      xlab(attributes(dose)[["dose.label"]]) +
       ylab("Percent") +
       ggtitle("Recommendation")
   } else {
     rec.threep3 <- dose[data[[1]]$threep3$mtd]
     df.rec.threep3 <- data.frame(rec=factor(c(rec, rec.threep3)),
-                                 weight=c(rep(1/length(rec), length(rec)), x[[1]]$threep$prob[x[[1]]$threep3$mtd!=0]),
+                                 weight=c(rep(1/length(rec), length(rec)), data[[1]]$threep$prob[data[[1]]$threep3$mtd!=0]),
                                  Method=rep(c("CRM", "3+3"), c(length(rec), length(rec.threep3))))
-    c <- ggplot(data=df.rec.threep3, aes(x=rec, y=100*..count.., weight=weight, fill=Method)) +
+    ggplot(data=df.rec.threep3, aes(x=rec, y=100*..count.., weight=weight, fill=Method)) +
       geom_bar(position="dodge") +
-      xlab(dose.label) +
+      xlab(attributes(dose)[["dose.label"]]) +
       ylab("Percent") +
       ggtitle("Recommendation")
   }
 }
 
-ggplot.bcrm.sim_obsDLT <- function(data, mapping=aes(), ...){
+ggplot.bcrm.sim_obsDLT <- function(data, mapping=aes(), threep3=FALSE, ...){
+  dose <- bcrm.get.dose(data)
+
   # observed DLTs
-  obs <- sapply(x, function(i){100*sum(i$tox)/sum(i$tox+i$notox)})
+  obs <- sapply(data, function(i){ 100 * sum(i$tox) / sum(i$tox + i$notox)})
   if(!threep3){
-    bw <- max(diff(range(obs))/30, 1)
+    bw <- max(diff(range(obs)) / 30, 1)
     df.obs <- data.frame(obs=obs, bw=bw)
-    d <- ggplot() +
-      geom_histogram(aes(bw=bw, x=obs, y=100*..density..*bw), data=df.obs, binwidth=bw) +
-      xlab("Percentage of subjects with DLTs")+ylab("Percent")+ggtitle("DLTs")
+
+    ggplot(data=df.obs, aes(bw=bw, x=obs, y=100*..density..*bw)) +
+      geom_histogram(binwidth=bw) +
+      xlab("Percentage of subjects with DLTs") +
+      ylab("Percent") +
+      ggtitle("DLTs")
   } else {
-    obs.threep3 <- 100*x[[1]]$threep3$dlt.no/x[[1]]$threep3$ssize
-    bw <- diff(range(c(obs, obs.threep3)))/30
-    df.obs.threep3 <- data.frame(bw=bw, obs=c(obs, obs.threep3), weight=c(rep(1/length(obs), length(obs)), x[[1]]$threep$prob), Method=rep(c("CRM", "3+3"), c(length(obs), length(obs.threep3))))
-    df.obs.threep3 <- subset(df.obs.threep3, df.obs.threep3$weight>0)
-    d <- ggplot(data=df.obs.threep3) +
-      geom_histogram(aes(bw=bw, x=obs, y=100*..density..*bw, weight=weight, fill=Method),
-                     binwidth=bw, position="dodge") +
+    obs.threep3 <- 100 * data[[1]]$threep3$dlt.no / data[[1]]$threep3$ssize
+    bw <- diff(range(c(obs, obs.threep3))) / 30
+    df.obs.threep3 <- data.frame(bw=bw,
+                                 obs=c(obs, obs.threep3),
+                                 weight=c(rep(1/length(obs), length(obs)), data[[1]]$threep$prob),
+                                 Method=rep(c("CRM", "3+3"), c(length(obs), length(obs.threep3))))
+
+    df.obs.threep3 <- subset(df.obs.threep3, df.obs.threep3$weight > 0)
+
+    ggplot(data=df.obs.threep3, aes(bw=bw, x=obs, y=100*..density..*bw, weight=weight, fill=Method)) +
+      geom_histogram(binwidth=bw, position="dodge") +
       xlab("Percentage of subjects with DLTs") +
       ylab("Percent") +
       ggtitle("DLTs")
