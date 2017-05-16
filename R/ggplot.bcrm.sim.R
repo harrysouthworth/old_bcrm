@@ -1,3 +1,4 @@
+#' Helper for getting dose info from a bcrm object
 bcrm.get.dose <- function(x){
   dose <- if(is.null(x[[1]]$dose)){
     x[[1]]$sdose
@@ -9,7 +10,34 @@ bcrm.get.dose <- function(x){
   dose
 }
 
+# Next function from https://github.com/tidyverse/ggplot2/wiki/share-a-legend-between-two-ggplot2-graphs
+grid_arrange_shared_legend <- function(..., ncol = length(list(...)), nrow = 1, position = c("bottom", "right")) {
+  plots <- list(...)
+  position <- match.arg(position)
+  g <- ggplotGrob(plots[[1]] + theme(legend.position = position))$grobs
+  legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
+  lheight <- sum(legend$height)
+  lwidth <- sum(legend$width)
+  gl <- lapply(plots, function(x) x + theme(legend.position="none"))
+  gl <- c(gl, ncol = ncol, nrow = nrow)
 
+  combined <- switch(position,
+                     "bottom" = arrangeGrob(do.call(arrangeGrob, gl),
+                                            legend,
+                                            ncol = 1,
+                                            heights = grid:::unit.c(unit(1, "npc") - lheight, lheight)),
+                     "right" = arrangeGrob(do.call(arrangeGrob, gl),
+                                           legend,
+                                           ncol = 2,
+                                           widths = grid:::unit.c(unit(1, "npc") - lwidth, lwidth)))
+
+  grid:::grid.newpage()
+  grid:::grid.draw(combined)
+
+  # return gtable invisibly
+  invisible(combined)
+
+}
 
 #-----------------------------------------------------------------------
 #    Plot function for an object of class bcrm.sim
@@ -50,7 +78,8 @@ bcrm.get.dose <- function(x){
 #' \url{http://www.jstatsoft.org/article/view/v054i13}
 #' @method ggplot bcrm.sim
 #' @export
-ggplot.bcrm.sim <- function(data, mapping=aes(), ncol=2, trajectories=FALSE, file=NULL, threep3=FALSE, quietly=TRUE, ...){
+ggplot.bcrm.sim <- function(data, mapping=aes(), ncol=2, nrow=2, trajectories=FALSE, file=NULL, threep3=FALSE, quietly=TRUE,
+                            legend.position="bottom", ...){
   if(threep3 & is.null(data[[1]]$threep3)){
     if (!quietly){
       message("Calculating 3+3 operating characteristics....")
@@ -64,21 +93,18 @@ ggplot.bcrm.sim <- function(data, mapping=aes(), ncol=2, trajectories=FALSE, fil
   } else {
     a <- ggplot.bcrm.sim_threep3(data, mapping=NULL, threep3=threep3, quietly=quietly)
 
-    b <- ggplot.bcrm.sim_experimentation(data, mapping=NULL, threep3=threep3)
+    b <- ggplot.bcrm.sim_experimentation(data, mapping=NULL, threep3=threep3) +
+      theme(legend.position=legend.position)
 
     cc <- ggplot.bcrm.sim_recommendation(data, mapping=NULL, threep3=threep3)
 
     d <- ggplot.bcrm.sim_obsDLT(data, mapping=NULL, threep3=threep3)
 
-    graphList <- if (is.null(a)){
-      list(b, cc, d, ncol=ncol)
+    if (is.null(a)){
+      grid.arrange(b, cc, d, ncol=ncol)
     } else {
-      list(a, b, cc, d, ncol=ncol)
+      grid_arrange_shared_legend(a, b, cc, d, ncol=ncol, nrow=nrow)
     }
-
-
-    do.call("grid.arrange", graphList)
-
   }
 }
 
