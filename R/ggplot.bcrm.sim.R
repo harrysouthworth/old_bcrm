@@ -58,15 +58,20 @@ grid_arrange_shared_legend <- function(..., ncol = length(list(...)), nrow = 1, 
 #' design are plotted alongside those of the \code{bcrm} design (see
 #' \code{\link{threep3}} for more details).
 #'
-#' @param x An object of class "bcrm.sim",  as returned by \code{\link{bcrm}}
+#' @param data An object of class "bcrm.sim",  as returned by \code{\link{bcrm}}
 #' when conducting a simulation.
+#' @param mapping Not used.
+#' @param ncol, nrow The numbers of rows and columns. Depending on other arguments,
+#'   either 3 or 4 plots will be produced, so \code{ncol * nrow} needs to be either
+#'   3 or 4.
 #' @param trajectories Should a summary plot of the trajectories of
 #' administered dose levels be plotted? Defaults to FALSE.
-#' @param file File name where the operating characteristic plot is stored,  in
-#' a pdf format.
 #' @param threep3 Should operating characteristics of a standard 3+3 rule-based
-#' design be plotted alongside the \code{bcrm} design? Defaults to
-#' \code{FALSE}.
+#'   design be plotted alongside the \code{bcrm} design? Defaults to
+#'   \code{FALSE}.
+#' @param legend.position Position for the legend to go. Should be either
+#'   \code{legend.position = "right"} or \code{legend.position = "bottom"} (the
+#'   default).
 #' @param ... Further arguments passed to or from other methods
 #' @author Michael Sweeting \email{mjs212@@medschl.cam.ac.uk} (University of
 #' Cambridge,  UK)
@@ -78,7 +83,7 @@ grid_arrange_shared_legend <- function(..., ncol = length(list(...)), nrow = 1, 
 #' \url{http://www.jstatsoft.org/article/view/v054i13}
 #' @method ggplot bcrm.sim
 #' @export
-ggplot.bcrm.sim <- function(data, mapping=aes(), ncol=2, nrow=2, trajectories=FALSE, file=NULL, threep3=FALSE, quietly=TRUE,
+ggplot.bcrm.sim <- function(data, mapping=aes(), ncol=2, nrow=2, trajectories=FALSE, threep3=FALSE, quietly=TRUE,
                             legend.position="bottom", ...){
   if(threep3 & is.null(data[[1]]$threep3)){
     if (!quietly){
@@ -103,7 +108,7 @@ ggplot.bcrm.sim <- function(data, mapping=aes(), ncol=2, nrow=2, trajectories=FA
     if (is.null(a)){
       grid.arrange(b, cc, d, ncol=ncol)
     } else {
-      grid_arrange_shared_legend(a, b, cc, d, ncol=ncol, nrow=nrow)
+      grid_arrange_shared_legend(a, b, cc, d, ncol=ncol, nrow=nrow, position=legend.position)
     }
   }
 }
